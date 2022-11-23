@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using MailChecker.MailClients;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MailChecker.Resources;
 
@@ -12,7 +11,7 @@ public static class Menu
 {
     public static void Head()
     {
-        var menuItems = new List<string>() { "1. Mail Checker", "2. Find message by sender", "3. Exit" };
+        var menuItems = new List<string>() { "1. Mail Checker", "2. Find message by sender" };
 
         var menuFunctions = new MenuFunctions();
         var row = Console.CursorTop;
@@ -40,8 +39,6 @@ public static class Menu
                             return;
                         case 1:
                             menuFunctions.FindMessageBySender();
-                            return;
-                        case 2:
                             return;
                     }
                     break;
@@ -104,55 +101,23 @@ public class MenuFunctions
     
     public void MailChecker()
     {
-        var accounts = CsvAccountReader.ReadAccount(Directory.GetCurrentDirectory() + @"\accounts.csv");
+        List<string> userInput = UserInput(
+            new List<string>() { "--Delay(ms): " });
         
-        foreach (var account in accounts)
-        {
-            MailClientConfiguration configuration = GetMailConfiguration(account.Mail);
-            var mailType = account.Mail.Split('@')[1];
-            try
-            {
-                _ = new Pop3MailClient(account.Mail, account.Password, configuration);
-                ColoredWriteLine.Green($"--OK: {account.Mail}");
-            }
-            catch
-            {
-                ColoredWriteLine.Red($"--Can't get access: {account.Mail}");
-            }
-        }
-        
-        ColoredWriteLine.Green("\n---------------------Done---------------------");
-    }
-
-    public void FindMessageBySender()
-    {
-        var sender = "";
-        var threadsDelay = 0;
-        
+        var threadsDelay = 100;
         try
         {
-            ColoredWrite.DarkYellow("--Sender: ");
-            sender = Console.ReadLine();
-            ColoredWrite.DarkYellow("--Delay(ms): ");
-            threadsDelay = int.Parse(Console.ReadLine()!);
-
-            if (string.IsNullOrEmpty(sender))
-            {
-                ColoredWriteLine.Red("\n--Invalid sender input");
-                Thread.Sleep(5000);
-                return;
-            }
+            threadsDelay = int.Parse(userInput[0]);
         }
-        catch (Exception e)
+        catch
         {
-            ColoredWriteLine.Red("\n--Invalid delay input");
-            Thread.Sleep(5000);
-            return;
+            ColoredWriteLine.DarkYellow("Setting the default value for delay: 100");
         }
         
+        Console.WriteLine();
         var accounts = CsvAccountReader.ReadAccount(Directory.GetCurrentDirectory() + @"\accounts.csv");
         var threadCounter = accounts.Count;
-
+        
         foreach (var account in accounts)
         {
             Thread mailThread = new Thread(_ => MailThreadFunc(account));
@@ -162,7 +127,69 @@ public class MenuFunctions
 
         void MailThreadFunc(CsvAccountReader.MailAccount account)
         {
-            MailClientConfiguration configuration = GetMailConfiguration(account.Mail);
+            MailClientConfiguration configuration = 
+                GetMailConfiguration(account.Mail);
+
+            try
+            {
+                _ = new Pop3MailClient(account.Mail, account.Password, configuration);
+                ColoredWriteLine.Green($"--OK: {account.Mail}");
+            }
+            catch
+            {
+                ColoredWriteLine.Red($"--Can't get access: {account.Mail}");
+            }
+
+            threadCounter -= 1;
+        }
+        
+        
+        while (true)
+        {
+            Thread.Sleep(100);
+            if (threadCounter == 0)
+            {
+                ColoredWriteLine.Green("\n---------------------Done---------------------");
+                break;
+            }
+        }
+
+        Console.ReadKey();
+    }
+
+    public void FindMessageBySender()
+    {
+        List<string> userInput = UserInput(
+            new List<string>() { "--Sender: ", "--Delay(ms): " });
+        
+        if (CheckUserInput(userInput) == false) return;
+        var threadsDelay = 100;
+        try
+        {
+            threadsDelay = int.Parse(userInput[1]);
+        }
+        catch
+        {
+            ColoredWriteLine.DarkYellow("Setting the default value for delay: 100");
+        }
+        
+        Console.WriteLine();
+        List<CsvAccountReader.MailAccount> accounts = 
+            CsvAccountReader.ReadAccount(Directory.GetCurrentDirectory() + @"\accounts.csv");
+        
+        var threadCounter = accounts.Count;
+
+        foreach (var account in accounts)
+        {
+            Thread mailThread = new Thread(_ => MailThreadFunc(account, userInput[0]));
+            mailThread.Start();
+            Thread.Sleep(threadsDelay);
+        }
+
+        void MailThreadFunc(CsvAccountReader.MailAccount account, string sender)
+        {
+            MailClientConfiguration configuration = 
+                GetMailConfiguration(account.Mail);
 
             if (string.IsNullOrEmpty(configuration.pop3Host))
             {
@@ -172,11 +199,11 @@ public class MenuFunctions
             
             try
             {
-                var mailObj = new Pop3MailClient(account.Mail, account.Password, configuration, sender);
-                var messages = mailObj.GetMailFromAddress();
+                var mailObj = new Pop3MailClient(account.Mail, account.Password, configuration);
+                var messages = mailObj.GetMailFromAddress(sender);
                 if (messages.Count > 0)
                 {
-                    ColoredWriteLine.Green($"Message found: {account.Mail}");
+                    ColoredWriteLine.Green($"Message(s) found: {account.Mail}");
                     threadCounter -= 1;
                     return; 
                 }
@@ -190,19 +217,43 @@ public class MenuFunctions
             
             threadCounter -= 1;
         }
-
-        var cnt = 0;
+        
         while (true)
         {
             Thread.Sleep(100);
-            if (threadCounter == 0 && cnt == 0)
+            if (threadCounter == 0)
             {
                 ColoredWriteLine.Green("\n---------------------Done---------------------");
-                cnt++;
+                break;
             }
         }
+
+        Console.ReadKey();
     }
 
+    private bool CheckUserInput(List<string> input)
+    {
+        foreach (var text in input)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+        }
+
+        return true;
+    }
+    
+    private List<string> UserInput(List<string> queries)
+    {
+        var input = new List<string>();
+        foreach (var query in queries)
+        {
+            ColoredWrite.DarkYellow(query);
+            var answer = Console.ReadLine();
+            input.Add(answer);
+        }
+        
+        return input;
+    }
+    
     private MailClientConfiguration GetMailConfiguration(string login)
     {
         var provider = login.Split('@')[1];

@@ -21,22 +21,10 @@ namespace MailChecker.MailClients
     
     public class Pop3MailClient
     {
-        private readonly string _mail;
-        private readonly string _sender;
         private readonly Pop3Client _client;
         
         public Pop3MailClient(string mail, string password, MailClientConfiguration configuration)
         {
-            _mail = mail;
-            _client = new Pop3Client();
-            _client.Connect(configuration.pop3Host, configuration.pop3Port, configuration.useSsl);
-            _client.Authenticate(mail, password, OpenPop.Pop3.AuthenticationMethod.UsernameAndPassword);
-        }
-        
-        public Pop3MailClient(string mail, string password, MailClientConfiguration configuration, string sender)
-        {
-            _mail = mail;
-            _sender = sender;
             _client = new Pop3Client();
             _client.Connect(configuration.pop3Host, configuration.pop3Port, configuration.useSsl);
             _client.Authenticate(mail, password, OpenPop.Pop3.AuthenticationMethod.UsernameAndPassword);
@@ -55,24 +43,23 @@ namespace MailChecker.MailClients
             return allMessages;
         }
 
-        public List<Pop3Mail> GetMailFromAddress()
+        public List<Pop3Mail> GetMailFromAddress(string sender)
         {
-            if (_sender == null) throw new Exception("Sender error");
+            if (sender == null) throw new Exception("Sender error");
             
             int messageCount = this._client.GetMessageCount();
 
-            var allMessages = new List<Pop3Mail>();
+            var listOfMessages = new List<Pop3Mail>();
 
             for (int i = messageCount; i > 0; i--)
             {
                 var msg = this._client.GetMessage(i);
-
-                allMessages.Add(new Pop3Mail { Message = msg, MessageNumber = i });
+                listOfMessages.Add(new Pop3Mail { Message = msg, MessageNumber = i });
             }
 
-            var relevantMail = allMessages.Where(m => m.Message.Headers.From.Address == _sender).ToList();
+            var relMail = listOfMessages.Where(t => t.Message.Headers.From.Address == sender).ToList();
             
-            return relevantMail;
+            return relMail;
         }
     }
 }
