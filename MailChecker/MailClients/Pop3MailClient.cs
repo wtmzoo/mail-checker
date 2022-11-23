@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using MailChecker.Resources;
 using OpenPop.Pop3;
 using OpenPop.Mime;
+using System.Collections.Generic;
 
 namespace MailChecker.MailClients
 {

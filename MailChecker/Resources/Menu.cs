@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using MailChecker.MailClients;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MailChecker.Resources;
 
