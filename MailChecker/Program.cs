@@ -1,9 +1,14 @@
-﻿namespace MailChecker
+﻿using System;
+using MailChecker.Resources;
+
+namespace MailChecker
 {
-  internal class Program
-  {
-    public static void Main(string[] args)
+    internal static class Program
     {
+        public static void Main(string[] args)
+        {
+            Console.CursorVisible = false;
+            Menu.Head();
+        }
     }
-  }
 }

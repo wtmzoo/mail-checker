@@ -6,60 +6,58 @@ using CsvHelper.Configuration;
 
 namespace MailChecker.Resources
 {
-    public class CsvReader
+    public class CsvAccountReader
     {
-        public struct RamblerAccount
+        public struct MailAccount
         {
             public string Mail { get; set; }
             public string Password { get; set; }
             public string Proxy { get; set; }
         }
-    
-        class CSV
+        
+        public static List<MailAccount> ReadAccount(string fileFullPath)
         {
-            public static List<RamblerAccount> ReadAccount(string fileFullPath)
+            List<MailAccount> accounts = new();
+
+            var csvConfig = new CsvConfiguration(CultureInfo.CurrentCulture)
             {
-                List<RamblerAccount> accounts = new();
+                HasHeaderRecord = false
+            };
 
-                var csvConfig = new CsvConfiguration(CultureInfo.CurrentCulture)
+            using var streamReader = File.OpenText(fileFullPath);
+            using var csvReader = new CsvReader(streamReader, csvConfig);
+
+            int iter = 0;
+
+            while (csvReader.Read())
+            {
+                if (iter != 0)
                 {
-                    HasHeaderRecord = false
-                };
-
-                using var streamReader = File.OpenText(fileFullPath);
-                using var csvReader = new CsvReader(streamReader, csvConfig);
-
-                int iter = 0;
-
-                while (csvReader.Read())
-                {
-                    if (iter != 0)
+                    for (int i = 0; csvReader.TryGetField(i, out string? value); i++)
                     {
-                        for (int i = 0; csvReader.TryGetField(i, out string? value); i++)
+                        var csvData = value!.Split(',');
+                        var login = csvData[0];
+                        if (!string.IsNullOrEmpty(csvData[0]) && !string.IsNullOrEmpty(csvData[1]))
                         {
-                            var csvData = value!.Split(',');
-                            var login = csvData[0];
-                            if (!string.IsNullOrEmpty(csvData[0]) && !string.IsNullOrEmpty(csvData[1]))
-                            {
-                                accounts.Add(new() { Mail = csvData[0], Password = csvData[1], Proxy = csvData[2]});
-                            }
+                            accounts.Add(new() { Mail = csvData[0], Password = csvData[1], Proxy = csvData[2]});
                         }
                     }
-                    iter++;
                 }
-                return accounts;
+                iter++;
             }
-        
-            public static void WriteData(List<RamblerAccount> ramblerObjects)
+            return accounts;
+        }
+    
+        public static void WriteData(List<MailAccount> ramblerObjects)
+        {
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-                {
-                    HasHeaderRecord = false
-                };
+                HasHeaderRecord = false
+            };
 
-                using var writer = new StreamWriter("checkedAccounts.csv", true);
-                using var csv = new CsvWriter(writer, config);
-                csv.WriteRecords(ramblerObjects);
-            }
+            using var writer = new StreamWriter("checkedAccounts.csv", true);
+            using var csv = new CsvWriter(writer, config);
+            csv.WriteRecords(ramblerObjects);
+        }
     }
 }

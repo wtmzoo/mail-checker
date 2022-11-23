@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using MailChecker.Resources;
 using OpenPop.Pop3;
 using OpenPop.Mime;
 
@@ -19,20 +21,27 @@ namespace MailChecker.MailClients
     
     public class Pop3MailClient
     {
-        private readonly string _login;
-        private readonly string _password;
+        private readonly string _mail;
+        private readonly string _sender;
         private readonly Pop3Client _client;
-
-        public Pop3MailClient(string login, string password, MailClientConfiguration config)
+        
+        public Pop3MailClient(string mail, string password, MailClientConfiguration configuration)
         {
-            _login = login;
-            _password = password;
+            _mail = mail;
             _client = new Pop3Client();
-            //_client.Connect("pop.rambler.ru", 995, true);
-            _client.Connect(config.pop3Host, config.pop3Port, config.useSsl);
-            _client.Authenticate(login, password, OpenPop.Pop3.AuthenticationMethod.UsernameAndPassword);
+            _client.Connect(configuration.pop3Host, configuration.pop3Port, configuration.useSsl);
+            _client.Authenticate(mail, password, OpenPop.Pop3.AuthenticationMethod.UsernameAndPassword);
         }
         
+        public Pop3MailClient(string mail, string password, MailClientConfiguration configuration, string sender)
+        {
+            _mail = mail;
+            _sender = sender;
+            _client = new Pop3Client();
+            _client.Connect(configuration.pop3Host, configuration.pop3Port, configuration.useSsl);
+            _client.Authenticate(mail, password, OpenPop.Pop3.AuthenticationMethod.UsernameAndPassword);
+        }
+
         public List<Pop3Mail> GetMail()
         {
             var messageCount = _client.GetMessageCount();
@@ -45,9 +54,11 @@ namespace MailChecker.MailClients
 
             return allMessages;
         }
-        
-        public List<Pop3Mail> GetMail(string fromAddress)
+
+        public List<Pop3Mail> GetMailFromAddress()
         {
+            if (_sender == null) throw new Exception("Sender error");
+            
             int messageCount = this._client.GetMessageCount();
 
             var allMessages = new List<Pop3Mail>();
@@ -59,8 +70,8 @@ namespace MailChecker.MailClients
                 allMessages.Add(new Pop3Mail { Message = msg, MessageNumber = i });
             }
 
-            var relevantMail = allMessages.Where(m => m.Message.Headers.From.Address == fromAddress).ToList();
-
+            var relevantMail = allMessages.Where(m => m.Message.Headers.From.Address == _sender).ToList();
+            
             return relevantMail;
         }
     }
