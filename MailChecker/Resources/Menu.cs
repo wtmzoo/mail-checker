@@ -80,6 +80,7 @@ public class MenuFunctions
 {
     private MailClientConfiguration outLookConfig;
     private MailClientConfiguration ramblerConfig;
+    private MailClientConfiguration mailruConfig;
     
     public MenuFunctions()
     {
@@ -93,6 +94,13 @@ public class MenuFunctions
         outLookConfig = new MailClientConfiguration()
         {
             pop3Host = "outlook.office365.com",
+            pop3Port = 995,
+            useSsl = true
+        };
+
+        mailruConfig = new MailClientConfiguration()
+        {
+            pop3Host = "pop.mail.ru",
             pop3Port = 995,
             useSsl = true
         };
@@ -112,7 +120,7 @@ public class MenuFunctions
         {
             ColoredWriteLine.DarkYellow("Setting the default value for delay: 100");
         }
-        
+        //89wW37wffG2wNBmGkYYx
         Console.WriteLine();
         var accounts = CsvAccountReader.ReadAccount(Directory.GetCurrentDirectory() + @"\accounts.csv");
         var threadCounter = accounts.Count;
@@ -256,15 +264,15 @@ public class MenuFunctions
     private MailClientConfiguration GetMailConfiguration(string login)
     {
         var provider = login.Split('@')[1];
-        MailClientConfiguration configuration = new();
+
         switch (provider)
         {
             case "rambler.ru":
                 return ramblerConfig;
-                break;
             case "outlook.com":
                 return outLookConfig;
-                break;
+            case "mail.ru":
+                return mailruConfig;
             default:
                 return new MailClientConfiguration();
         }

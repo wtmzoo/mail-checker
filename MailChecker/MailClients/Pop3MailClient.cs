@@ -31,7 +31,7 @@ namespace MailChecker.MailClients
 
         public List<Pop3Mail> GetMail()
         {
-            var messageCount = _client.GetMessageCount();
+            int messageCount = _client.GetMessageCount();
             var allMessages = new List<Pop3Mail>(messageCount);
 
             for (var i = messageCount; i > 0; i--)
