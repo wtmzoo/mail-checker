@@ -7,6 +7,7 @@ There is also a function to check if the username and password from the mail are
 
 - ✅ OutLook
 - ✅ Rambler
+- ✅ Mail.ru
 
 ## Proxy
 
